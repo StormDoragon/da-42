@@ -217,34 +217,20 @@
               <label for="domain">Domain name</label>
               <input id="domain" name="domain" placeholder="yourdomain.com" />
             </div>
-            <div>
-              <label for="category">Category</label>
-              <select id="category" name="category">
-                <option>Technology</option>
-                <option>Commerce</option>
-                <option>Finance</option>
-                <option>Health</option>
-                <option>Travel</option>
-              </select>
-            </div>
-            <div>
-              <label for="traffic">Monthly traffic</label>
-              <input id="traffic" name="traffic" placeholder="12,000" />
-            </div>
             <button type="button">Get appraisal</button>
           </form>
           <div class="summary">
             <div class="summary-item">
               <span>Estimated value</span>
-              <strong>$18,500</strong>
+              <strong id="estimatedValue">$18,500</strong>
             </div>
             <div class="summary-item">
               <span>Comparable sales</span>
-              <strong>24 listings</strong>
+              <strong id="comparableSales">24 listings</strong>
             </div>
             <div class="summary-item">
               <span>Confidence</span>
-              <strong>High</strong>
+              <strong id="confidenceLevel">High</strong>
             </div>
           </div>
         </article>
@@ -279,5 +265,57 @@
         review and custom market report.
       </footer>
     </main>
+    <script>
+      const domainInput = document.getElementById("domain");
+      const button = document.querySelector("button");
+      const estimatedValue = document.getElementById("estimatedValue");
+      const comparableSales = document.getElementById("comparableSales");
+      const confidenceLevel = document.getElementById("confidenceLevel");
+
+      const formatCurrency = (value) =>
+        value.toLocaleString("en-US", {
+          style: "currency",
+          currency: "USD",
+          maximumFractionDigits: 0,
+        });
+
+      const scoreDomain = (domain) => {
+        const clean = domain.toLowerCase().replace(/https?:\/\//, "").trim();
+        if (!clean) {
+          return {
+            value: 18500,
+            listings: 24,
+            confidence: "High",
+          };
+        }
+
+        let hash = 0;
+        for (const char of clean) {
+          hash = (hash + char.charCodeAt(0) * 17) % 1000;
+        }
+
+        const lengthScore = Math.max(0, 18 - clean.length);
+        const value = 8000 + lengthScore * 900 + hash * 6;
+        const listings = 12 + (hash % 35);
+        const confidence =
+          lengthScore >= 10 ? "High" : lengthScore >= 6 ? "Medium" : "Low";
+
+        return {
+          value,
+          listings,
+          confidence,
+        };
+      };
+
+      const updateSummary = () => {
+        const { value, listings, confidence } = scoreDomain(domainInput.value);
+        estimatedValue.textContent = formatCurrency(value);
+        comparableSales.textContent = `${listings} listings`;
+        confidenceLevel.textContent = confidence;
+      };
+
+      domainInput.addEventListener("input", updateSummary);
+      button.addEventListener("click", updateSummary);
+    </script>
   </body>
 </html>
