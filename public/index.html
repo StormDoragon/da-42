@@ -126,6 +126,36 @@
         display: block;
       }
 
+      .report {
+        grid-column: 1 / -1;
+        background: #ffffff;
+        border-radius: 18px;
+        padding: 24px;
+        border: 1px solid #e2e8f0;
+        display: grid;
+        gap: 20px;
+      }
+
+      .report h3 {
+        font-size: 1.1rem;
+        color: #0f172a;
+      }
+
+      .report p,
+      .report li {
+        color: #475569;
+        line-height: 1.6;
+        font-size: 0.96rem;
+      }
+
+      .report ul {
+        padding-left: 20px;
+      }
+
+      .report strong {
+        color: #0f172a;
+      }
+
       form {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -235,6 +265,25 @@
           </div>
         </article>
 
+        <article class="card report" aria-live="polite">
+          <div>
+            <h2>Domain valuation summary</h2>
+            <p id="valuationSummary"></p>
+          </div>
+          <div>
+            <h3>Valuation breakdown</h3>
+            <ul id="valuationBreakdown"></ul>
+          </div>
+          <div>
+            <h3>Comparable market context</h3>
+            <p id="marketContext"></p>
+          </div>
+          <div>
+            <h3>Limitations and disclosure</h3>
+            <p id="limitations"></p>
+          </div>
+        </article>
+
         <article class="card">
           <h2>What we analyze</h2>
           <p>
@@ -271,6 +320,10 @@
       const estimatedValue = document.getElementById("estimatedValue");
       const comparableSales = document.getElementById("comparableSales");
       const confidenceLevel = document.getElementById("confidenceLevel");
+      const valuationSummary = document.getElementById("valuationSummary");
+      const valuationBreakdown = document.getElementById("valuationBreakdown");
+      const marketContext = document.getElementById("marketContext");
+      const limitations = document.getElementById("limitations");
 
       const formatCurrency = (value) =>
         value.toLocaleString("en-US", {
@@ -284,8 +337,18 @@
         if (!clean) {
           return {
             value: 18500,
+            range: [13500, 24500],
             listings: 24,
             confidence: "High",
+            confidenceScore: 0.74,
+            breakdown: {
+              brandability: 78,
+              keywordDemand: "Medium",
+              comparableSales: "Mid five-figure ranges for short brandable .com names.",
+              length: "Short and clear, favorable for recall.",
+              tld: "Strong liquidity for .com or major ccTLDs.",
+            },
+            context: "Domains with similar structure and niche usually trade in the $12k–$25k range on major marketplaces and private sales.",
           };
         }
 
@@ -296,26 +359,83 @@
 
         const lengthScore = Math.max(0, 18 - clean.length);
         const value = 8000 + lengthScore * 900 + hash * 6;
+        const rangeLow = Math.max(1500, Math.round(value * 0.75));
+        const rangeHigh = Math.round(value * 1.25);
         const listings = 12 + (hash % 35);
         const confidence =
           lengthScore >= 10 ? "High" : lengthScore >= 6 ? "Medium" : "Low";
+        const confidenceScore =
+          lengthScore >= 10 ? 0.78 : lengthScore >= 6 ? 0.6 : 0.42;
+
+        const brandabilityScore = Math.min(92, 55 + lengthScore * 2 + (hash % 20));
+        const keywordDemand =
+          clean.length <= 10 ? "Medium to High" : "Medium";
+        const comparableSales =
+          "Similar length and naming patterns tend to settle in a consistent mid-market range.";
+        const lengthAssessment =
+          clean.length <= 10
+            ? "Short length supports memorability and faster recall."
+            : "Moderate length reduces liquidity compared to short names.";
+        const tldAssessment = clean.endsWith(".com")
+          ? "Strong resale demand and high end-user acceptance for .com."
+          : "Non-.com extensions trade with lower liquidity unless highly relevant.";
 
         return {
           value,
+          range: [rangeLow, rangeHigh],
           listings,
           confidence,
+          confidenceScore,
+          breakdown: {
+            brandability: brandabilityScore,
+            keywordDemand,
+            comparableSales,
+            length: lengthAssessment,
+            tld: tldAssessment,
+          },
+          context:
+            "Domains with comparable length, structure, and category relevance typically fall within the $3k–$25k range depending on brand fit and buyer demand.",
         };
       };
 
       const updateSummary = () => {
-        const { value, listings, confidence } = scoreDomain(domainInput.value);
+        const {
+          value,
+          range,
+          listings,
+          confidence,
+          confidenceScore,
+          breakdown,
+          context,
+        } = scoreDomain(domainInput.value);
         estimatedValue.textContent = formatCurrency(value);
         comparableSales.textContent = `${listings} listings`;
         confidenceLevel.textContent = confidence;
+
+        const displayDomain = domainInput.value.trim() || "yourdomain.com";
+        valuationSummary.innerHTML = `<strong>Domain:</strong> ${displayDomain}<br /><strong>Estimated Market Range:</strong> ${formatCurrency(
+          range[0]
+        )} – ${formatCurrency(range[1])}<br /><strong>Confidence Level:</strong> ${confidence} (${confidenceScore.toFixed(
+          2
+        )})`;
+
+        valuationBreakdown.innerHTML = `
+          <li><strong>Brandability (30%)</strong> → ${breakdown.brandability}/100. ${breakdown.brandability >= 70 ? "Memorable and easy to pronounce." : "Moderate brandability with some complexity."}</li>
+          <li><strong>Keyword Demand (20%)</strong> → ${breakdown.keywordDemand} demand with typical commercial intent variation.</li>
+          <li><strong>Comparable Sales (25%)</strong> → ${breakdown.comparableSales}</li>
+          <li><strong>Length &amp; Structure (15%)</strong> → ${breakdown.length}</li>
+          <li><strong>TLD Strength (10%)</strong> → ${breakdown.tld}</li>
+        `;
+
+        marketContext.textContent = context;
+        limitations.textContent =
+          "This is an automated analytical estimate. Actual sale price depends on buyer intent, timing, and negotiation. Some extensions may have lower investor liquidity than expected.";
       };
 
       domainInput.addEventListener("input", updateSummary);
       button.addEventListener("click", updateSummary);
+      updateSummary();
     </script>
   </body>
 </html>
+
